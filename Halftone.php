@@ -277,7 +277,9 @@ function halftone_process_tags(&$text)
 			<script type="text/javascript">
 				addOnloadHook(function()
 					{
-						$("div.halftone").get(0).style.pageBreakBefore = "auto";
+						var first_ht = $("div.halftone").get(0);
+						if ( first_ht )
+							first_ht.style.pageBreakBefore = "auto";
 						$("select.halftone-key").change(function()
 							{
 								var me = this;
