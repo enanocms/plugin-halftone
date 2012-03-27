@@ -254,7 +254,7 @@ function halftone_process_tags(&$text)
 		$template->preload_js(array('jquery', 'jquery-ui'));
 		$template->add_header('
 			<style type="text/css">
-				h1.halftone-title {
+				div.halftone {
 					page-break-before: always;
 				}
 				span.halftone-line {
@@ -277,6 +277,7 @@ function halftone_process_tags(&$text)
 			<script type="text/javascript">
 				addOnloadHook(function()
 					{
+						$("div.halftone").get(0).style.pageBreakBefore = "auto";
 						$("select.halftone-key").change(function()
 							{
 								var me = this;
@@ -315,7 +316,8 @@ function halftone_process_tags(&$text)
 				$select .= sprintf("<option%s value=\"%d\" halftone:abs=\"%d\">%s</option>", $sel, $i - $key, $i, $label);
 			}
 			$select .= '</select>';
-			$text = str_replace_once($whole_match, "<div class=\"halftone\" halftone:src=\"$src\"><div class=\"halftone-key-select\">$select</div><h1 class=\"halftone-title\">$song_title</h1>\n\n<div class=\"halftone-song\">\n" . $song . "</div></div>", $text);
+			$headid = 'song:' . sanitize_page_id($song_title);
+			$text = str_replace_once($whole_match, "<div id=\"$headid\" class=\"halftone\" halftone:src=\"$src\"><div class=\"halftone-key-select\">$select</div><h1 class=\"halftone-title\">$song_title</h1>\n\n<div class=\"halftone-song\">\n" . $song . "</div></div>", $text);
 		}
 	}
 }
@@ -323,7 +325,7 @@ function halftone_process_tags(&$text)
 function halftone_render_body($inner, &$chord_list, $inkey = false)
 {
 	global $accidentals;
-	$song = '';
+	$song = '<div class="section">';
 	$chord_list = array();
 	$transpose = isset($_GET['transpose']) ? intval($_GET['transpose']) : 0;
 	$transpose_accidental = $inkey ? $accidentals[$inkey] : false;
@@ -370,18 +372,22 @@ function halftone_render_body($inner, &$chord_list, $inkey = false)
 		}
 		else if ( preg_match('/^=\s*(.+?)\s*=$/', $line, $match) )
 		{
-			$song .= "== {$match[1]} ==\n";
+			$song .= "</div>\n<div class=\"section\">\n== {$match[1]} ==\n\n";
 		} 
 		else if ( trim($line) == '' )
 		{
 			continue;
+		}
+		else if ( preg_match('/^\[(.+)\]$/', trim($line), $match) )
+		{
+			$song .= "<br /><strong>Jump to:</strong> {$match[1]}\n";
 		}
 		else
 		{
 			$song .= "$line<br />\n";
 		}
 	}
-	return $song;
+	return $song . '</div>';
 }
 
 function page_Special_HalftoneRender()
