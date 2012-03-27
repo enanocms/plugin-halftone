@@ -13,7 +13,7 @@
 **!*/
 
 $plugins->attachHook('render_wikiformat_posttemplates', 'halftone_process_tags($text);');
-$plugins->attachHook('html_attribute_whitelist', '$whitelist["halftone"] = array("title", "key");');
+$plugins->attachHook('html_attribute_whitelist', '$whitelist["halftone"] = array("title", "transpose");');
 $plugins->attachHook('session_started', 'register_special_page(\'HalftoneRender\', \'Halftone AJAX render handler\', false);');
 
 define('KEY_C', 0);
@@ -247,6 +247,8 @@ function transpose_chord($chord, $increment, $accidental = false)
 
 function halftone_process_tags(&$text)
 {
+	global $circle_of_fifths;
+	
 	static $css_added = false;
 	if ( !$css_added )
 	{
@@ -307,15 +309,23 @@ function halftone_process_tags(&$text)
 			$chord_list = array();
 			$inner = trim($matches[2][$i]);
 			$song = halftone_render_body($inner, $chord_list);
+			
 			$src = base64_encode($whole_match);
-			$key = name_to_key(detect_key($chord_list));
+			$origkey = $key = name_to_key(detect_key($chord_list));
+			if ( isset($attribs['transpose']) && is_int($tokey = name_to_key($attribs['transpose'])) )
+			{
+				// re-render in new key
+				$transpose = $tokey - $key;
+				$song = halftone_render_body($inner, $chord_list, $tokey, $transpose);
+				$key = $tokey;
+			}
 			$select = '<select class="halftone-key">';
 			for ( $i = 0; $i < 12; $i++ )
 			{
 				$label = in_array($i, array(KEY_C_SHARP, KEY_E_FLAT, KEY_F_SHARP, KEY_G_SHARP, KEY_B_FLAT)) ? sprintf("%s/%s", key_to_name($i, ACC_SHARP), key_to_name($i, ACC_FLAT)) : key_to_name($i);
 				$label = prettify_accidentals($label);
 				$sel = $key == $i ? ' selected="selected"' : '';
-				$select .= sprintf("<option%s value=\"%d\" halftone:abs=\"%d\">%s</option>", $sel, $i - $key, $i, $label);
+				$select .= sprintf("<option%s value=\"%d\" halftone:abs=\"%d\">%s</option>", $sel, $i - $origkey, $i, $label);
 			}
 			$select .= '</select>';
 			$headid = 'song:' . sanitize_page_id($song_title);
@@ -324,12 +334,12 @@ function halftone_process_tags(&$text)
 	}
 }
 
-function halftone_render_body($inner, &$chord_list, $inkey = false)
+function halftone_render_body($inner, &$chord_list, $inkey = false, $transpose = 0)
 {
 	global $accidentals;
 	$song = '<div class="section">';
 	$chord_list = array();
-	$transpose = isset($_GET['transpose']) ? intval($_GET['transpose']) : 0;
+	$transpose = isset($_GET['transpose']) ? intval($_GET['transpose']) : $transpose;
 	$transpose_accidental = $inkey ? $accidentals[$inkey] : false;
 	foreach ( explode("\n", $inner) as $line )
 	{
