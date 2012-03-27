@@ -1,0 +1,27 @@
+chords2halftone.php is a completely standalone (non-Enano dependent) quick php
+script which turns ascii monospace chord sheets into halftone markup. You may
+or may not find it useful.
+
+Halftone markup example:
+
+<halftone title="Don't Stop Believing">
+Intro: (E) (B) (C#m) (A) (E) (B) (G#m) (A)
+
+Verse 1:
+(E)Just a (B)small town girl
+(C#m)Living in a (A)lonely world,
+(E)She took the (B)midnight train going
+(G#m)any - (A)where
+</halftone>
+
+You get the picture.
+
+Halftone will position the chords exactly in the right position above the text.
+You also (and this was the main reason I wrote this plugin) get automatic
+transposition with ajaxy-smooth sexiness.
+
+Note that the positioning-chords-above-text trick sometimes makes for overlaps
+if you put chords so close to each other. An example would be using
+"(G#m)any(A)where" in the sample verse above - depending on your theme/font
+G#m would be directly adjacent to A (confusing) or A would even overlap. So
+be sure to space out your lyrics accordingly.
