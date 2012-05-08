@@ -79,15 +79,22 @@ function detect_key($chord_list)
 	$majors = array();
 	$minors = array();
 	$sharp_or_flat = ACC_SHARP;
+	// sus4 chords are also a great indicator since they are almost always
+	// used exclusively on the fifth
+	$have_sus4 = false;
 	// index which chords are used in the song
 	foreach ( $chord_list as $chord )
 	{
 		// discard bass note
 		list($chord) = explode('/', $chord);
 		$match = array();
-		preg_match('/((?:m?7?|2|add9|sus4|[Mm]aj[79])?)$/', $chord, $match);
+		preg_match('/((?:[Mm]?7?|2|5|6|add9|sus4|[Mm]aj[79]|dim|aug)?)$/', $chord, $match);
 		if ( !empty($match[1]) )
+		{
 			$chord = str_replace_once($match[1], '', $chord);
+			if ( $match[1] === 'sus4' )
+				$have_sus4 = $chord;
+		}
 		$sharp_or_flat = get_sharp($chord) == $chord ? ACC_SHARP : ACC_FLAT;
 		$chord = get_sharp($chord);
 		if ( $match[1] == 'm' || $match[1] == 'm7' )
@@ -105,6 +112,14 @@ function detect_key($chord_list)
 			$majors[$chord]++;
 		}
 	}
+	/*
+	// remove very low scorers
+	foreach ( $majors as $key => $count )
+	{
+		if ( $count < 1 )
+			unset($majors[$key]);
+	}
+	*/
 	// now we go through each of the detected major chords, calculate its consonants, and determine how many of its consonants are present in the song.
 	$scores = array();
 	foreach ( $majors as $key => $count )
@@ -114,7 +129,7 @@ function detect_key($chord_list)
 		if ( isset($majors[key_to_name($consonants['fourth'])]) )
 			$scores[$key] += 2;
 		if ( isset($majors[key_to_name($consonants['fifth'])]) )
-			$scores[$key] += 2;
+			$scores[$key] += $have_sus4 === key_to_name($consonants['fifth']) ? 4 : 2;
 		if ( isset($majors[key_to_name($consonants['minors'][0])]) )
 			$scores[$key] += 1;
 		if ( isset($majors[key_to_name($consonants['minors'][1])]) )
@@ -221,7 +236,7 @@ function transpose_chord($chord, $increment, $accidental = false)
 		return transpose_chord($upper, $increment, $accidental) . '/' . transpose_chord($lower, $increment, $accidental);
 	}
 	// shave off any wacky things we're doing to the chord (minor, seventh, etc.)
-	preg_match('/((?:m?7?|2|add9|sus4|[Mm]aj[79])?)$/', $chord, $match);
+	preg_match('/((?:[Mm]?7?|2|5|6|add9|sus4|[Mm]aj[79]|dim|aug)?)$/', $chord, $match);
 	// find base chord
 	if ( !empty($match[1]) )
 		$chord = str_replace($match[1], '', $chord);
@@ -268,6 +283,9 @@ function halftone_process_tags(&$text)
 					position: absolute;
 					top: 0pt;
 					color: rgb(27, 104, 184);
+				}
+				span.halftone-line.labeled span.halftone-chord {
+					position: static;
 				}
 				span.halftone-chord.sequential {
 					padding-left: 20pt;
@@ -344,8 +362,9 @@ function halftone_render_body($inner, &$chord_list, $inkey = false, $transpose =
 	foreach ( explode("\n", $inner) as $line )
 	{
 		$chordline = false;
-		$chords_regex = '/(\((?:[A-G][#b]?(?:m?7?|2|add9|sus4|[Mm]aj[79])?(?:\/[A-G][#b]?)?)\))/';
+		$chords_regex = '/(\((?:[A-G][#b]?(?:[Mm]?7?|2|5|6|add9|sus4|[Mm]aj[79]|dim|aug)?(?:\/[A-G][#b]?)?)\))/';
 		$line_split = preg_split($chords_regex, $line, -1, PREG_SPLIT_DELIM_CAPTURE);
+		$line_pattern = '';
 		if ( preg_match_all($chords_regex, $line, $chords) )
 		{
 			// this is a line with lyrics + chords
@@ -370,6 +389,7 @@ function halftone_render_body($inner, &$chord_list, $inkey = false, $transpose =
 						$line_final[] = '<span class="halftone-chord">' . prettify_accidentals($chord_list[] = transpose_chord(trim($entry, '()'), $transpose, $transpose_accidental)) . '</span>';
 					}
 					$last_was_chord = true;
+					$line_pattern .= 'c';
 				}
 				else
 				{
@@ -377,10 +397,12 @@ function halftone_render_body($inner, &$chord_list, $inkey = false, $transpose =
 					{
 						$last_was_chord = false;
 						$line_final[] = $entry;
+						$line_pattern .= 'w';
 					}
 				}
 			}
-			$song .= '<span class="halftone-line">' . implode("", $line_final) . "</span>\n";
+			$class_append = preg_match('/^w?c+$/', $line_pattern) ? ' labeled' : '';
+			$song .= '<span class="halftone-line' . $class_append . '">' . implode("", $line_final) . "</span>\n";
 		}
 		else if ( preg_match('/^=\s*(.+?)\s*=$/', $line, $match) )
 		{

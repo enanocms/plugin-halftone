@@ -38,7 +38,7 @@ if ( isset($_POST['text']) )
 			}
 			echo "\n[{$match[1]}]\n";
 		}
-		else if ( preg_match('/^(\s*([A-G][#b]?(?:m?7?|2|add9|sus4|[Mm]aj[79])?)(\/[A-G][#b]?)?\s*)*$/', $line) )
+		else if ( preg_match('/^(\s*([A-G][#b]?(?:[Mm]?7?|2|5|6|add9|sus4|[Mm]aj[79]|dim|aug)?)(\/[A-G][#b]?)?\s*)*$/', $line) )
 		{
 			if ( $chordline )
 			{
