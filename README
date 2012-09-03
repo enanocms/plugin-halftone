@@ -5,9 +5,10 @@ or may not find it useful.
 Halftone markup example:
 
 <halftone title="Don't Stop Believing">
-Intro: (E) (B) (C#m) (A) (E) (B) (G#m) (A)
+= Intro =
+(E) (B) (C#m) (A) (E) (B) (G#m) (A)
 
-Verse 1:
+= Verse 1 =
 (E)Just a (B)small town girl
 (C#m)Living in a (A)lonely world,
 (E)She took the (B)midnight train going
@@ -24,4 +25,22 @@ Note that the positioning-chords-above-text trick sometimes makes for overlaps
 if you put chords so close to each other. An example would be using
 "(G#m)any(A)where" in the sample verse above - depending on your theme/font
 G#m would be directly adjacent to A (confusing) or A would even overlap. So
-be sure to space out your lyrics accordingly.
+be sure to space out your lyrics accordingly. You can use HTML entities (like
+"&nbsp;" or so) to space things out.
+
+You may also find it beneficial, if the key detection algorithm goofs up, to
+prepend a "!" to the beginning of a chord expression which does not fit into
+the consonant chords for a given key. Consider the following passage, taken
+from a song in the key of A (this is the pre-chorus):
+
+	(E)And together we (B)sing (D)
+	Everyone (B)sing (D)
+
+The key detection actually caused Halftone to think this song was in D. You can
+rewrite this as,
+
+	(E)And together we (!B)sing (D)
+	Everyone (!B)sing (D)
+	
+...which causes the key detection algorithm to ignore that random B, which is
+considered to be dissonant to the key of A.

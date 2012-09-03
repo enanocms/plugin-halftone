@@ -87,6 +87,12 @@ function detect_key($chord_list)
 	{
 		// discard bass note
 		list($chord) = explode('/', $chord);
+		// skip chord if it has a "!"
+		if ( $chord{0} == '!' )
+		{
+			continue;
+		}
+		
 		$match = array();
 		preg_match('/((?:[Mm]?7?|2|5|6|add9|sus4|[Mm]aj[79]|dim|aug)?)$/', $chord, $match);
 		if ( !empty($match[1]) )
@@ -223,7 +229,7 @@ function prettify_accidentals($chord)
 	{
 		$chord = $chord{0} . '&sharp;' . substr($chord, 2);
 	}
-	return $chord;
+	return ltrim($chord, '!');
 }
 
 function transpose_chord($chord, $increment, $accidental = false)
@@ -236,6 +242,12 @@ function transpose_chord($chord, $increment, $accidental = false)
 		return transpose_chord($upper, $increment, $accidental) . '/' . transpose_chord($lower, $increment, $accidental);
 	}
 	// shave off any wacky things we're doing to the chord (minor, seventh, etc.)
+	$prechord = '';
+	if ( $chord{0} == '!' )
+	{
+		$prechord = '!';
+		$chord = substr($chord, 1);
+	}
 	preg_match('/((?:[Mm]?7?|2|5|6|add9|sus4|[Mm]aj[79]|dim|aug)?)$/', $chord, $match);
 	// find base chord
 	if ( !empty($match[1]) )
@@ -255,7 +267,7 @@ function transpose_chord($chord, $increment, $accidental = false)
 	if ( !$kname )
 		// again, should never happen
 		return "[TRANSPOSITION FAILED: " . $chord . $match[1] . " + $increment (-&gt;$key)]";
-	$result = $kname . $match[1];
+	$result = $prechord . $kname . $match[1];
 	// echo "$chord{$match[1]} + $increment = $result<br />";
 	return $result;
 }
@@ -362,14 +374,13 @@ function halftone_render_body($inner, &$chord_list, $inkey = false, $transpose =
 	foreach ( explode("\n", $inner) as $line )
 	{
 		$chordline = false;
-		$chords_regex = '/(\((?:[A-G][#b]?(?:[Mm]?7?|2|5|6|add9|sus4|[Mm]aj[79]|dim|aug)?(?:\/[A-G][#b]?)?)\))/';
+		$chords_regex = '/(\((?:\!?[A-G][#b]?(?:[Mm]?7?|2|5|6|add9|sus4|[Mm]aj[79]|dim|aug)?(?:\/[A-G][#b]?)?)\))/';
 		$line_split = preg_split($chords_regex, $line, -1, PREG_SPLIT_DELIM_CAPTURE);
 		$line_pattern = '';
 		if ( preg_match_all($chords_regex, $line, $chords) )
 		{
 			// this is a line with lyrics + chords
-			// echo out the line, adding spans around chords. here is where we also do transposition
-			// (if requested) and 
+			// echo out the line, adding spans around chords.
 			$line_final = array();
 			$last_was_chord = false;
 			foreach ( $line_split as $entry )
