@@ -15,6 +15,7 @@
 $plugins->attachHook('render_wikiformat_posttemplates', 'halftone_process_tags($text);');
 $plugins->attachHook('html_attribute_whitelist', '$whitelist["halftone"] = array("title", "transpose");');
 $plugins->attachHook('session_started', 'register_special_page(\'HalftoneRender\', \'Halftone AJAX render handler\', false);');
+$plugins->attachHook('render_getpage_norender', 'halftone_set_keys_from_tpl_vars($text);');
 
 define('KEY_C', 0);
 define('KEY_D', 2);
@@ -272,6 +273,42 @@ function transpose_chord($chord, $increment, $accidental = false)
 	return $result;
 }
 
+function halftone_set_keys_from_tpl_vars(&$text)
+{
+	global $db, $session, $paths, $template, $plugins; // Common objects
+	
+	// did they specify a key?
+	if ( !isset($template->tpl_strings['key']) )
+	{
+		return false;
+	}
+	
+	// is the key valid?
+	if ( !is_string(key_to_name($template->tpl_strings['key'])) )
+	{
+		return false;
+	}
+	
+	if ( preg_match_all('/<halftone(.*?)>(.+?)<\/halftone>/s', $text, $matches) )
+	{
+		foreach ( $matches[0] as $i => $whole_match )
+		{
+			$attribs = decodeTagAttributes($matches[1][$i]);
+			$attribs['transpose'] = $template->tpl_strings['key'];
+			
+			// re-encode tag attributes
+			$attribs_encoded = '';
+			foreach ( $attribs as $k => $v )
+			{
+				$attribs_encoded .= sprintf(" %s=\"%s\"", $k, htmlspecialchars($v));
+			}
+			
+			$new_match = str_replace_once('<halftone', "<halftone{$attribs_encoded}", str_replace_once($matches[1][$i], '', $whole_match));
+			$text = str_replace_once($whole_match, $new_match, $text);
+		}
+	}
+}
+
 function halftone_process_tags(&$text)
 {
 	global $circle_of_fifths;
@@ -415,7 +452,7 @@ function halftone_render_body($inner, &$chord_list, $inkey = false, $transpose =
 			$class_append = preg_match('/^w?c+$/', $line_pattern) ? ' labeled' : '';
 			$song .= '<span class="halftone-line' . $class_append . '">' . implode("", $line_final) . "</span>\n";
 		}
-		else if ( preg_match('/^=\s*(.+?)\s*=$/', $line, $match) )
+		else if ( preg_match('/^=\s*(.+?)\s*=\r?$/', $line, $match) )
 		{
 			$song .= "</div>\n<div class=\"section\">\n== {$match[1]} ==\n\n";
 		} 
@@ -432,7 +469,12 @@ function halftone_render_body($inner, &$chord_list, $inkey = false, $transpose =
 			$song .= "$line<br />\n";
 		}
 	}
-	return $song . '</div>';
+	$song .= '</div>';
+	
+	//header('Content-type: text/plain');
+	//die($song);
+	
+	return $song;
 }
 
 function page_Special_HalftoneRender()
