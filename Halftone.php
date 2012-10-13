@@ -77,6 +77,8 @@ function get_sharp($chord)
 
 function detect_key($chord_list)
 {
+	global $circle_of_fifths;
+	
 	$majors = array();
 	$minors = array();
 	$sharp_or_flat = ACC_SHARP;
@@ -127,12 +129,26 @@ function detect_key($chord_list)
 			unset($majors[$key]);
 	}
 	*/
+	// go through the circle of fifths, and if both its fourth and fifth are in the song but the root is not, add it
+	foreach ( $circle_of_fifths as $key )
+	{
+		$consonants = get_consonants($key);
+		if ( isset($majors[ key_to_name($consonants['fourth']) ]) &&
+			 isset($majors[ key_to_name($consonants['fifth']) ]) &&
+		 	!isset($majors[ key_to_name($consonants['first']) ]) )
+			// I call this the Kutless Exception. The song does not contain its root chord. This just adds
+			// that root to the list of possibilities, and it needs to score high enough to beat out the
+			// others.
+			$majors[ key_to_name($key) ] = 0;
+	}
 	// now we go through each of the detected major chords, calculate its consonants, and determine how many of its consonants are present in the song.
 	$scores = array();
 	foreach ( $majors as $key => $count )
 	{
 		$scores[$key] = 0;
+		
 		$consonants = get_consonants(name_to_key($key));
+		
 		if ( isset($majors[key_to_name($consonants['fourth'])]) )
 			$scores[$key] += 2;
 		if ( isset($majors[key_to_name($consonants['fifth'])]) )
